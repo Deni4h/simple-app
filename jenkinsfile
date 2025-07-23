@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'git@github.com:Deni4h/simple-app.git'
+                git branch: 'main', url: 'git@github.com:Deni4h/simple-app.git'
             }
         }
 
