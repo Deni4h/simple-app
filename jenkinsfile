@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'GIT_TAG', defaultValue: '', description: 'Masukkan tag Git, contoh: v1.0.0')
+    }
+
     environment {
         DOCKERHUB_USER = "denidkr24" 
         IMAGE_NAME = "${DOCKERHUB_USER}/simple-app"
@@ -9,8 +13,21 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'git@github.com:Deni4h/simple-app.git'
-                echo "clone dari repositori berhasil"
+                script {
+                    if (params.GIT_TAG == '') {
+                        error "❌ Parameter GIT_TAG tidak boleh kosong"
+                    }
+
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "refs/tags/${params.GIT_TAG}"]],
+                        userRemoteConfigs: [[
+                            url: 'git@github.com:Deni4h/simple-app.git',
+                            credentialsId: 'git-deni4h' // Ganti dengan ID SSH Key kamu di Jenkins
+                        ]]
+                    ])
+                    echo "✅ Clone berdasarkan tag ${params.GIT_TAG} berhasil"
+                }
             }
         }
 
@@ -19,7 +36,7 @@ pipeline {
                 script {
                     IMAGE_TAG = "v${BUILD_NUMBER}"
                     IMAGE_FULL_NAME = "${IMAGE_NAME}:${IMAGE_TAG}"
-                    echo "Image akan dibuat: ${IMAGE_FULL_NAME}"
+                    echo "📦 Image akan dibuat: ${IMAGE_FULL_NAME}"
                 }
             }
         }
@@ -28,7 +45,7 @@ pipeline {
             steps {
                 script {
                     docker.build("${IMAGE_FULL_NAME}")
-                    echo "build image docker berhasil"
+                    echo "🔨 Build image Docker berhasil"
                 }
             }
         }
@@ -37,7 +54,7 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('', 'docker-hub-credentials') {
-                        echo "Login berhasil ke Docker Hub"
+                        echo "🔑 Login ke Docker Hub berhasil"
                     }
                 }
             }
@@ -48,7 +65,7 @@ pipeline {
                 script {
                     docker.withRegistry('', 'docker-hub-credentials') {
                         docker.image("${IMAGE_FULL_NAME}").push()
-                        echo "push ke registri berhasil"
+                        echo "☁️ Push ke Docker Hub berhasil"
                     }
                 }
             }
@@ -58,8 +75,8 @@ pipeline {
             steps {
                 script {
                     sh 'docker rm -f myapp-container || true'
-
                     sh "docker run -d -p 7979:80 --name myapp-container ${IMAGE_FULL_NAME}"
+                    echo "🚀 Container berjalan di port 7979"
                 }
             }
         }
