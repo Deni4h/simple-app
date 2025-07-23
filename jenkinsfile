@@ -10,6 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'git@github.com:Deni4h/simple-app.git'
+                echo "clone dari repositori berhasil"
             }
         }
 
@@ -27,6 +28,7 @@ pipeline {
             steps {
                 script {
                     docker.build("${IMAGE_FULL_NAME}")
+                    echo "build image docker berhasil"
                 }
             }
         }
@@ -46,6 +48,7 @@ pipeline {
                 script {
                     docker.withRegistry('', 'docker-hub-credentials') {
                         docker.image("${IMAGE_FULL_NAME}").push()
+                        echo "push ke registri berhasil"
                     }
                 }
             }
@@ -54,10 +57,8 @@ pipeline {
         stage('Run Container') {
             steps {
                 script {
-                    // Stop container lama jika ada
                     sh 'docker rm -f myapp-container || true'
 
-                    // Jalankan container baru
                     sh "docker run -d -p 7979:80 --name myapp-container ${IMAGE_FULL_NAME}"
                 }
             }
